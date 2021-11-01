@@ -1,16 +1,16 @@
-# Clean Data Using SQL queries On "Nashville Housing Dataset"
+# Clean Data Using SQL & MYSQL queries On "Nashville Housing Dataset"
 
 This readme is to give the description of  the dataset and to  show the comparisons between sql queries of two tools: MySQL Workbench 8.0 CE & Microsoft SQL Server Management Studio 18.
 
-Dataset Description:
+##### Dataset Description:
 
 This dataset contains Information of all about  customer  and  details of a house renting.
 
-Columns:
+##### Columns:
 
 UniqueID, ParcelID,Landuse,Property Address,SaleDate,SalePrice,LegalRefrences,SoldAsVacant,OwnerName,Owner Address,Acreage,TAxDistrict,LandValue,BuildingValue.TotalValue,YearBuilt,Bedrooms,Fullbath,Halfbath.
 
-Aim:
+##### Aim:
 
 - Standardize Date Format
 - Populate Property Address Data
@@ -21,7 +21,7 @@ Aim:
 
 
 
-Tools:
+##### Tools:
 
 MySQL Workbench 8.0 CE
 
@@ -29,175 +29,21 @@ Microsoft SQL Server Management Studio 18
 
 
 
-Comparison Between Queries of MySQL Workbench & Microsoft SQL Server:
+##### Comparison Between Queries of MySQL Workbench & Microsoft SQL Server:
 
-​					Mysql                                                                                                                    SQL server
+​			
 
-* ```select SaleDate,convert(SaleDate,Date)```                                       ``` select SaleDate,convert(Date,SaleDate) ```
+| SQL SERVER                                                   | MYSQL                                                        |
+| :----------------------------------------------------------- | :----------------------------------------------------------- |
+| select SaleDate,**convert(Date,SaleDate)**                   | select SaleDate,**convert(SaleDate,Date)**                   |
+| **UPDATE** a<br/>**SET** PropertyAddress=**ISNULL**(a.PropertyAddress,b.PropertyAddress) <br/>FROM portfolio_1.dbo.NashvilleHousing a <br/>**JOIN**portfolio_1.dbo.NashvilleHousing b <br/>ON a.ParcelID=b.ParcelID<br/>AND a.[UniqueID ]<>b.[UniqueID ] <br/>**WHERE** a.PropertyAddress is null; | **UPDATE** NVH a -- labelling as a<br/>**JOIN**NVH b -- labelling as "b"<br/>ON a.ParcelID=b.ParcelID<br/>AND a.UniqueID <>b.UniqueID <br/>**SET **a.PropertyAddress=**IFNULL**(a.PropertyAddress,b.PropertyAddress) <br/>**WHERE** a.PropertyAddress is null; |
+| SUBSTRING(PropertyAddress,1,**CHARINDEX**(',',PropertyAddress)-1) as Address | SUBSTRING(PropertyAddress,1,**LOCATE**(',',PropertyAddress)-1) as Address |
+| **LEN**(PropertyAddress))                                    | **CHAR_LENGTH**(RTRIM(PropertyAddress)                       |
+| **PARSENAME**(REPLACE(OwnerAddress,',','.'),3)               | **SUBSTRING_INDEX**(OwnerAddress,',',1)                      |
+| WITH RowNumCTE AS(<br/>Select *,<br/>	**ROW_NUMBER() OVER** (                <br/>	**PARTITION BY** ParcelID,                <br/>				 PropertyAddress,<br/>				 SalePrice,<br/>				 SaleDate,<br/>				 LegalReference<br/>				 ORDER BY<br/>					UniqueID<br/>					) row_num<br/><br/>From NashvilleHousing)<br/><br/>**SELECT** *<br/>From RowNumCTE<br/>Where row_num > 1<br/>Order by PropertyAddress | #check for duplicates:<br/>**SELECT** UniqueID, <br/>    **ROW_NUMBER() OVER** ( <br/>		**PARTITION BY**  ParcelID,                <br/>				 PropertyAddress,<br/>				 SalePrice,<br/>				 SaleDate,<br/>				 LegalReference<br/>				 ORDER BY<br/>					UniqueID<br/>	) AS row_num <br/>FROM NVH; |
+| #Remove Duplicates<br/>WITH RowNumCTE AS(<br/>Select *,<br/>	**ROW_NUMBER() OVER** (                  <br/>	**PARTITION BY** ParcelID,               <br/>				 PropertyAddress,<br/>				 SalePrice,<br/>				 SaleDate,<br/>				 LegalReference<br/>				 ORDER BY<br/>					UniqueID<br/>					) row_num<br/><br/>FROM NashvilleHousing)<br/><br/>**DELETE**<br/>**FROM** RowNumCTE<br/>**WHERE** row_num > 1 | **DELETE** FROM NVH  <br/>**WHERE** <br/>	UniqueID IN (<br/>	SELECT <br/>		UniqueID <br/>	**FROM** (<br/>		SELECT <br/>			UniqueID,<br/>			**ROW_NUMBER() OVER** (<br/>				**PARTITION BY**ParcelID,                <br/>				 PropertyAddress,<br/>				 SalePrice,<br/>				 SaleDate,<br/>				 LegalReference<br/>				 ORDER BY<br/>					UniqueID<br/>	) AS row_num <br/>		FROM NVH<br/>        ) t<br/>WHERE row_num > 1); |
+|                                                              |                                                              |
 
 
 
-
-
-Update a (sql server)
-
-Set PropertyAddress=ISNULL(a.PropertyAddress,b.PropertyAddress) 
-from portfolio_1.dbo.NashvilleHousing a 
-Join portfolio_1.dbo.NashvilleHousing b 
-on a.ParcelID=b.ParcelID
-and a.[UniqueID ]<>b.[UniqueID ] 
-where a.PropertyAddress is null;
-
-
-
-
-
-
-
-* ```Update NVH a -- labelling as "a"    (mysql)
-  Join NVH b -- labelling as "b"
-  on a.ParcelID=b.ParcelID
-  and a.UniqueID <>b.UniqueID 
-  Set a.PropertyAddress=IFNULL(a.PropertyAddress,b.PropertyAddress) 
-  where a.PropertyAddress is null;```
-  ```
-  
-  
-
-
-
-
-
-
-
-* sql server= ```SUBSTRING(PropertyAddress,1,CHARINDEX(',',PropertyAddress)-1) as Address```
-
-* msql=  ```SUBSTRING(PropertyAddress,1,LOCATE(',',PropertyAddress)-1) as Address```
-
-  
-
-
-
-
-
-Sql server=``` LEN(PropertyAddress))```
-
-mqsl= ```CHAR_LENGTH(RTRIM(PropertyAddress)```
-
-
-
-sql=```PARSENAME (REPLACE(OwnerAddress,',','.'),3)```
-
-msql=```SUBSTRING_INDEX(OwnerAddress,',',1)```
-
-
-
-
-
-
-
-
-
-
-
-check for duplicates:
-
-sql= 
-
-​     WITH RowNumCTE AS(
-Select *,
-​	ROW_NUMBER() OVER (                   --ROW_NUMBER() function to assign a sequential integer to each row of a result set.
-​	PARTITION BY ParcelID,                -- partition on things should be unique to each row 
-​				 PropertyAddress,
-​				 SalePrice,
-​				 SaleDate,
-​				 LegalReference
-​				 ORDER BY
-​					UniqueID
-​					) row_num
-
-From NashvilleHousing)
-
-Select *
-From RowNumCTE
-Where row_num > 1
-Order by PropertyAddress
-
-
-
-
-
-
-
-
-
-msql=
-
-SELECT UniqueID, 
-    ROW_NUMBER() OVER ( 
-		PARTITION BY  ParcelID,                -- partition on things should be unique to each row 
-				 PropertyAddress,
-				 SalePrice,
-				 SaleDate,
-				 LegalReference
-				 ORDER BY
-					UniqueID
-	) AS row_num 
-FROM NVH;
-
-
-
-
-
-
-
-remove duplicates:
-
-
-
-sql=
-
-WITH RowNumCTE AS(
-Select *,
-	ROW_NUMBER() OVER (                   --add a new column "row number"
-	PARTITION BY ParcelID,                -- partition on things should be unique to each row 
-				 PropertyAddress,
-				 SalePrice,
-				 SaleDate,
-				 LegalReference
-				 ORDER BY
-					UniqueID
-					) row_num
-
-From NashvilleHousing)
-
-Delete
-From RowNumCTE
-Where row_num > 1
-
-
-
-msql=
-
-DELETE FROM NVH  
-WHERE 
-	UniqueID IN (
-	SELECT 
-		UniqueID 
-	FROM (
-		SELECT 
-			UniqueID,
-			ROW_NUMBER() OVER (
-				PARTITION BY ParcelID,                
-				 PropertyAddress,
-				 SalePrice,
-				 SaleDate,
-				 LegalReference
-				 ORDER BY
-					UniqueID
-	) AS row_num 
-		FROM NVH
-		
-	) t
-	WHERE row_num > 1
-);
+##### Courtesy:https://www.youtube.com/watch?v=8rO7ztF4NtU
